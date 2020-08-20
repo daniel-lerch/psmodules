@@ -1,6 +1,6 @@
-$mysqlName = "mysql-5.7.29-winx64"
-$mariadbName = "mariadb-10.4.13-winx64"
-$installPath = Join-Path $PSScriptRoot "bin"
+$mysqlName = "mysql-5.7.30-winx64"
+$mariadbName = "mariadb-10.5.5-winx64"
+$installPath = Join-Path $env:LOCALAPPDATA "Programs" "Database Servers"
 
 function Install-DbServer {
 	[CmdletBinding()]
@@ -13,20 +13,19 @@ function Install-DbServer {
 
 	begin {
 		# We require mirrors to support HTTPS
-		$mysqlMirror = "https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.29-winx64.zip"
-		$mariadbMirror = "https://mirrors.ukfast.co.uk/sites/mariadb//mariadb-10.4.13/winx64-packages/mariadb-10.4.13-winx64.zip"
+		$mysqlMirror = "https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.30-winx64.zip"
+		$mysqlSize = "368 MB"
+		$mariadbMirror = "https://mirrors.ukfast.co.uk/sites/mariadb//mariadb-10.5.5/winx64-packages/mariadb-10.5.5-winx64.zip"
+		$mariadbSize = "68 MB"
 
-		function InstallDbServer ($Mirror, $Name) {
+		function InstallDbServer ($Mirror, $Size, $Name) {
 			$guid = [System.Guid]::NewGuid().ToString()
 			$tempPath = Join-Path $env:TEMP $guid
 			$downloadPath = Join-Path $env:TEMP ($guid + ".zip")
 			$versionPath = Join-Path $installPath $Name
 
-			$webResponse = Invoke-WebRequest -Uri $Mirror -Method Head -UseBasicParsing -ErrorAction Stop
-			$contentLength = $webResponse.Headers[[System.Net.HttpResponseHeader]::ContentLength]
-			$displaySize = [System.Math]::Round(([System.Convert]::ToDouble($contentLength) / 1024 / 1024), 1)
 			$message = "Download and install?"
-			$question = "The download size is $displaySize MiB. Do you want to proceed?"
+			$question = "The download size is $Size. Do you want to proceed?"
 			$choices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
 			$choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList "&Yes"))
 			$choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList "&No"))
@@ -84,10 +83,10 @@ function Install-DbServer {
 		Write-Host ""
 
 		if ($MySQL) {
-			InstallDbServer -Mirror $mysqlMirror -Name $mysqlName
+			InstallDbServer -Mirror $mysqlMirror -Size $mysqlSize -Name $mysqlName
 		}
 		if ($MariaDB) {
-			InstallDbServer -Mirror $mariadbMirror -Name $mariaName
+			InstallDbServer -Mirror $mariadbMirror -Size $mariadbSize -Name $mariaName
 		}
 
 		PurgeDbServer -Path (Join-Path $env:LOCALAPPDATA MariaDB)
