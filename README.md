@@ -15,3 +15,9 @@ Functions
 - `Start-DbCli [-Database <database name>]`
 
 Database Server are installed to `%LOCALAPPDATA%\Programs\Database Servers\`.
+
+### Storage
+This module was developed for power users who are missing some GNU core utils on their Windows system.
+
+Functions
+- `Clear-PhysicalDrive -Number <drive number>` (requires elevated permissions)
