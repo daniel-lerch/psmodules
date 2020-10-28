@@ -53,7 +53,7 @@ function Clear-PhysicalDrive {
 				$random.NextBytes($buffer)
 				$stream.Write($buffer, 0, $buffer.Length)
 				$done += $buffer.Length
-				[int]$percentComplete = [System.Math]::Round($done / $diskDrive.Size)
+				[int]$percentComplete = [System.Math]::Round(100 * $done / $diskDrive.Size)
 				$stopwatch.Stop()
 				[long]$bytesPerSecond = $buffer.Length / $stopwatch.Elapsed.TotalSeconds
 				$stopwatch.Restart()
