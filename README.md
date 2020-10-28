@@ -21,3 +21,4 @@ This module was developed for power users who are missing some GNU core utils on
 
 Functions
 - `Clear-PhysicalDrive -Number <drive number>` (requires elevated permissions)
+- `Remove-CorruptedFiles -Path <folder> [-RemoveWithoutExtension]`

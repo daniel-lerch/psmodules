@@ -69,3 +69,104 @@ function Clear-PhysicalDrive {
 		}
 	}
 }
+
+<#
+.SYNOPSIS
+	Deletes corrupted media files
+.PARAMETER Path
+	The folder to recursively process deleting all corrupted files
+.PARAMETER RemoveWithoutExtension
+	Treats files without extension as corrupted and deletes them
+.NOTES
+	This modules bundles TagLibSharp 2.2.0 for netstandard2.0
+#>
+function Remove-CorruptedFiles {
+	[CmdletBinding()]
+	param (
+		[Parameter(Mandatory = $true, Position = 1)]
+		[string]$Path,
+		[switch]$RemoveWithoutExtension
+	)
+	
+	begin {
+		Add-Type -Path (Join-Path $PSScriptRoot "TagLibSharp.dll")
+		$supportedExtensions = 
+		<# video #> "mkv","ogv","avi","wmv","asf","mp4","m4p","m4v","mpeg","mpg","mpe","mpv","mpg","m2v",
+		<# audio #> "aa","aax","aac","aiff","ape","dsf","flac","m4a","m4b","m4p","mp3","mpc","mpp","ogg","oga","wav","wma","wv","webm",
+		<# images #> "bmp","gif","jpg","jpeg","pbm","pgm","ppm","pnm","pcx","png","tiff","dng","svg"
+
+		function UpdateState ($State) {
+			Write-Progress -Activity "Validating files" -Status "Intact: $($State.Intact) Corrupted: $($State.Corrupted) Skipped: $($State.Skipped) Empty: $($State.Empty)/$($State.Folders)"
+		}
+
+		function ProcessFolderRecursive ($State, $Options, [System.IO.DirectoryInfo]$Directory) {
+			$children = 0
+			$State.Folders++
+
+			foreach ($folder in $Directory.EnumerateDirectories()) {
+				if (ProcessFolderRecursive $State $Options $folder) {
+					$children++
+				}
+			}
+
+			foreach ($file in $Directory.EnumerateFiles()) {
+				if ($Options.RemoveWithoutExtension -and [String]::IsNullOrEmpty($file.Extension)) {
+					$file.Delete()
+					$State.Corrupted++
+				} elseif ($file.Extension.StartsWith(".") -and $supportedExtensions.Contains($file.Extension.Substring(1).ToLower())) {
+					try {
+						$mediaFile = [TagLib.File]::Create($file.FullName)
+						$children++
+						$State.Intact++
+					}
+					catch [TagLib.CorruptFileException] {
+						$file.Delete()
+						$State.Corrupted++
+					}
+					finally {
+						if ($null -ne $mediaFile) {
+							$mediaFile.Dispose()
+						}
+					}
+				} else {
+					$children++
+					$State.Skipped++
+				}
+				UpdateState $State
+			}
+
+			if ($children -gt 0) {
+				return $true
+			} else {
+				$Directory.Delete()
+				$State.Empty++
+				UpdateState $State
+				return $false
+			}
+		}
+	}
+	
+	process {
+		$directory = New-Object System.IO.DirectoryInfo (Resolve-Path -Path $Path).Path
+		$state = [PSCustomObject]@{
+			Intact = 0
+			Corrupted = 0
+			Skipped = 0
+			Empty = 0
+			Folders = 0
+		}
+		$options = [PSCustomObject]@{
+			RemoveWithoutExtension = $RemoveWithoutExtension
+		}
+
+		$null = ProcessFolderRecursive $state $options $directory
+
+		Write-Progress -Activity "Validating files" -Completed
+
+		Write-Host "Summary"
+		Write-Host "	Intact: $($state.Intact)"
+		Write-Host "	Corrupted: $($state.Corrupted)"
+		Write-Host "	Skipped: $($state.Skipped)"
+		Write-Host "	Empty: $($state.Empty)/$($state.Folders)"
+	}
+}
