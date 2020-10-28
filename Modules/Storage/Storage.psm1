@@ -77,6 +77,9 @@ function Clear-PhysicalDrive {
 	The folder to recursively process deleting all corrupted files
 .PARAMETER RemoveWithoutExtension
 	Treats files without extension as corrupted and deletes them
+.PARAMETER RemoveExtensions
+	Treats files with these extensions as corrupted and deletes them
+	Use the lowercase value without a leading dot
 .NOTES
 	This modules bundles TagLibSharp 2.2.0 for netstandard2.0
 #>
@@ -85,7 +88,8 @@ function Remove-CorruptedFiles {
 	param (
 		[Parameter(Mandatory = $true, Position = 1)]
 		[string]$Path,
-		[switch]$RemoveWithoutExtension
+		[switch]$RemoveWithoutExtension,
+		[string[]]$RemoveExtensions
 	)
 	
 	begin {
@@ -96,7 +100,7 @@ function Remove-CorruptedFiles {
 		<# images #> "bmp","gif","jpg","jpeg","pbm","pgm","ppm","pnm","pcx","png","tiff","dng","svg"
 
 		function UpdateState ($State) {
-			Write-Progress -Activity "Validating files" -Status "Intact: $($State.Intact) Corrupted: $($State.Corrupted) Skipped: $($State.Skipped) Empty: $($State.Empty)/$($State.Folders)"
+			Write-Progress -Activity "Validating files" -Status "Intact: $($State.Intact) Corrupted: $($State.Corrupted) Skipped: $($State.Skipped) Trash: $($State.Trash) Empty: $($State.Empty)/$($State.Folders)"
 		}
 
 		function ProcessFolderRecursive ($State, $Options, [System.IO.DirectoryInfo]$Directory) {
@@ -112,7 +116,10 @@ function Remove-CorruptedFiles {
 			foreach ($file in $Directory.EnumerateFiles()) {
 				if ($Options.RemoveWithoutExtension -and [String]::IsNullOrEmpty($file.Extension)) {
 					$file.Delete()
-					$State.Corrupted++
+					$State.Trash++
+				} elseif ($file.Extension.StartsWith(".") -and $options.RemoveExtensions.Contains($file.Extension.Substring(1).ToLower())) {
+					$file.Delete()
+					$State.Trash++
 				} elseif ($file.Extension.StartsWith(".") -and $supportedExtensions.Contains($file.Extension.Substring(1).ToLower())) {
 					try {
 						$mediaFile = [TagLib.File]::Create($file.FullName)
@@ -122,6 +129,11 @@ function Remove-CorruptedFiles {
 					catch [TagLib.CorruptFileException] {
 						$file.Delete()
 						$State.Corrupted++
+					}
+					# Skip files that are not supported by TagLibSharp
+					catch [TagLib.UnsupportedFormatException] {
+						$children++
+						$State.Skipped++
 					}
 					finally {
 						if ($null -ne $mediaFile) {
@@ -152,11 +164,13 @@ function Remove-CorruptedFiles {
 			Intact = 0
 			Corrupted = 0
 			Skipped = 0
+			Trash = 0
 			Empty = 0
 			Folders = 0
 		}
 		$options = [PSCustomObject]@{
 			RemoveWithoutExtension = $RemoveWithoutExtension
+			RemoveExtensions = $RemoveExtensions ?? [string[]]@()
 		}
 
 		$null = ProcessFolderRecursive $state $options $directory
@@ -167,6 +181,7 @@ function Remove-CorruptedFiles {
 		Write-Host "	Intact: $($state.Intact)"
 		Write-Host "	Corrupted: $($state.Corrupted)"
 		Write-Host "	Skipped: $($state.Skipped)"
+		Write-Host "	Trash: $($state.Trash)"
 		Write-Host "	Empty: $($state.Empty)/$($state.Folders)"
 	}
 }
