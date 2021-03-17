@@ -47,6 +47,8 @@ function Clear-PhysicalDrive {
 			if (!($Force -or $PSCmdlet.ShouldContinue("Do you really want to override $($displayName)?", "Override?"))) {
 				return
 			}
+			Write-Progress -Activity "Overriding $displayName" -Status "Removing volume..." -PercentComplete 0
+			Clear-Disk -Number $Number -RemoveData -RemoveOEM -Confirm:$false -ErrorAction SilentlyContinue
 			$stream = New-Object System.IO.FileStream("\\.\PHYSICALDRIVE$Number", [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None, $buffer.Length, [System.IO.FileOptions]::None)
 			$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 			while ($true) {
