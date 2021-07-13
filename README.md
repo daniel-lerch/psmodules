@@ -17,8 +17,14 @@ Functions
 Database Server are installed to `%LOCALAPPDATA%\Programs\Database Servers\`.
 
 ### Storage
-This module was developed for power users who are missing some GNU core utils on their Windows system.
+This module is for power users who are missing some GNU core utils on their Windows system.
 
 Functions
 - `Clear-PhysicalDrive -Number <drive number>` (requires elevated permissions)
 - `Remove-CorruptedFiles -Path <folder> ...`
+
+### Webfilter
+This module is for people who want to play around with filter lists.
+
+Functions
+- `Test-DnsServer`
