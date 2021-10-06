@@ -24,7 +24,7 @@ Functions
 - `Remove-CorruptedFiles -Path <folder> ...`
 
 ### Webfilter
-This module is for people who want to play around with filter lists.
+This module is for people who want to play around with filter lists. It's presets are currently focussed on testing adult content filters but can be easily extended.
 
 Functions
 - `Test-DnsServer`

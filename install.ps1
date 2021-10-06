@@ -11,16 +11,9 @@ if (!(Test-Path -Path $installPath -PathType Container)) {
 }
 
 $sourcePath = Join-Path $PSScriptRoot "Modules"
+Start-Process -FilePath "Robocopy.exe" -ArgumentList "`"$sourcePath`"","`"$installPath`"","/mir","/njh","/njs","/nfl","/ndl" -NoNewWindow -Wait
+
 Get-ChildItem -Path $sourcePath -Directory | ForEach-Object {
-    if (Test-Path -Path (Join-Path $installPath $_.Name) -PathType Container) {
-        Write-Host "Updating module $($_.Name)..."
-        $src = Join-Path $sourcePath $_.Name
-        $dst = Join-Path $installPath $_.Name
-        Start-Process -FilePath "Robocopy.exe" -ArgumentList "`"$src`"","`"$dst`"","/mir","/njh","/njs","/nfl","/ndl" -NoNewWindow -Wait
-    } else {
-        Write-Host "Installing module $($_.Name)..."
-        Copy-Item -Path (Join-Path $sourcePath $_.Name) -Destination $installPath -Recurse
-    }
     # Force reload in active session to simplify debugging
     Import-Module $_.Name -Force
 }
