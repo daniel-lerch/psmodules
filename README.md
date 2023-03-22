@@ -21,6 +21,7 @@ This module is for power users who are missing some GNU core utils on their Wind
 
 Functions
 - `Clear-PhysicalDrive -Number <drive number>` (requires elevated permissions)
+- `Remove-DuplicateFiles <folder> <folder>`
 - `Remove-CorruptedFiles -Path <folder> ...`
 
 ### Webfilter

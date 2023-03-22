@@ -74,6 +74,95 @@ function Clear-PhysicalDrive {
 
 <#
 .SYNOPSIS
+	Deletes duplicate files that exist in reference path
+.PARAMETER ReferencePath
+	The main folder to keep. This should usually be a more recent version than ShrinkingPath
+.PARAMETER ShrinkingPath
+	The folder to delete files from that also exist in ReferecePath
+.NOTES
+	This commands compares files based on file name and SHA-256 hash. Duplicate files are only deleted if both are identical.
+#>
+function Remove-DuplicateFiles {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$ReferencePath,
+        [Parameter(Mandatory = $true, Position = 1)]
+        [string]$ShrinkingPath
+    )
+
+    begin {
+        function SHA256 ([System.IO.Stream]$Stream, [bool]$Close) {
+            $algorithm = [System.Security.Cryptography.SHA256]::Create()
+            $hash = $algorithm.ComputeHash($Stream)
+            $algorithm.Dispose()
+            if ($Close) { 
+                $Stream.Dispose()
+            }
+            return $hash
+        }
+
+        function MergeFolderRecursive ($State, [System.IO.DirectoryInfo]$WorkingDirectory) {
+            $children = 0
+            foreach ($folder in $WorkingDirectory.EnumerateDirectories()) {
+                if (MergeFolderRecursive $State $folder) {
+                    $children++
+                }
+            }
+            foreach ($file in $WorkingDirectory.EnumerateFiles()) {
+                $relativePath = $file.FullName.Substring($State.Shrinking.FullName.Length + 1) # Remove backslash
+                $referenceFile = New-Object System.IO.FileInfo(Join-Path $State.Reference.FullName $relativePath)
+                if ($referenceFile.Exists) {
+                    $shrHash = SHA256 -Stream $file.OpenRead() -Close $true
+                    $refHash = SHA256 -Stream $referenceFile.OpenRead() -Close $true
+                    if (Compare-Object $refHash $shrHash) {
+                        Write-Host "[Different] $relativePath exists in both directories with different binary content" -ForegroundColor Yellow
+                        $children++
+                        $State.Different++
+                    } elseif ($file.FullName -eq $referenceFile.FullName) {
+                        Write-Host "[Identical] $relativePath is the same file in both directories"
+                        $children++
+                        $State.Identical++
+                    } else {
+                        Write-Host "[Identical] $relativePath exists in both directories with identical binary content"
+                        $file.Delete()
+                        $State.Identical++
+                    }
+                } else {
+                    $children++
+                    $State.Additional++
+                }
+            }
+            if ($children -gt 0) {
+                return $true
+            } else {
+                Write-Host "[Empty] $relativePath does not contain files anymore"
+                $WorkingDirectory.Delete()
+                $State.Empty++
+                return $false
+            }
+        }       
+    }
+
+    process {
+        Write-Host "Deleting duplicate files in $ShrinkingPath which exist in $ReferencePath"
+
+        $state = [PSCustomObject]@{
+            Reference = New-Object System.IO.DirectoryInfo((Resolve-Path -Path $ReferencePath).Path.TrimEnd("\"))
+            Shrinking = New-Object System.IO.DirectoryInfo((Resolve-Path -Path $ShrinkingPath).Path.TrimEnd("\"))
+            Different = 0
+            Identical = 0
+            Additional = 0
+            Empty = 0
+        }
+        MergeFolderRecursive $state $state.Shrinking | Out-Null
+    
+        Write-Host $state -ForegroundColor Green
+    }
+}
+
+<#
+.SYNOPSIS
 	Deletes corrupted media files
 .PARAMETER Path
 	The folder to recursively process deleting all corrupted files
