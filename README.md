@@ -1,7 +1,7 @@
 # PSModules
 
 This repository contains a bundle of PowerShell modules useful for developers.  
-Run `install.ps1` with PowerShell 7+ to copy all modules to your local modules folder.
+Run `install.ps1` with PowerShell to copy all modules to your local modules folder.
 
 ## Modules
 

@@ -12,10 +12,10 @@ function Install-DbServer {
 	)
 
 	# We require mirrors to support HTTPS
-	$mysqlMirror = "https://downloads.mysql.com/archives/get/p/23/file/mysql-5.7.35-winx64.zip"
-	$mysqlSize = "370 MB"
-	$mariadbMirror = "https://downloads.mariadb.org/rest-api/mariadb/10.6.4/mariadb-10.6.4-winx64.zip"
-	$mariadbSize = "71 MB"
+	$mysqlMirror = "https://downloads.mysql.com/archives/get/p/23/file/mysql-5.7.40-winx64.zip"
+	$mysqlSize = "309 MB"
+	$mariadbMirror = "https://downloads.mariadb.org/rest-api/mariadb/10.11.2/mariadb-10.11.2-winx64.zip"
+	$mariadbSize = "83 MB"
 
 	function InstallDbServer ($Mirror, $Size, $Name) {
 		$guid = [System.Guid]::NewGuid().ToString()
@@ -103,10 +103,12 @@ function Install-DbServer {
 		InstallDbServer -Mirror $mariadbMirror -Size $mariadbSize -Name $mariadbName
 	}
 
+	# Files will be installed in %LOCALAPPDATA%\Programs\MySQL or %LOCALAPPDATA\Programs\MariaDB%
+	# Old locations which have been used before are asked to delete here
 	PurgeDbServer (Join-Path $env:LOCALAPPDATA MariaDB)
-	PurgeDbServer (Join-Path $env:LOCALAPPDATA "Programs" "Database Servers" "mysql-5.7.30-winx64")
-	PurgeDbServer (Join-Path $env:LOCALAPPDATA "Programs" "Database Servers" "mariadb-10.5.5-winx64")
-	PurgeEmptyFolder (Join-Path $env:LOCALAPPDATA "Programs" "Database Servers")
+	PurgeDbServer (Join-Path (Join-Path (Join-Path $env:LOCALAPPDATA "Programs") "Database Servers") "mysql-5.7.30-winx64")
+	PurgeDbServer (Join-Path (Join-Path (Join-Path $env:LOCALAPPDATA "Programs") "Database Servers") "mariadb-10.5.5-winx64")
+	PurgeEmptyFolder (Join-Path (Join-Path $env:LOCALAPPDATA "Programs") "Database Servers")
 }
 
 function Start-DbServer {

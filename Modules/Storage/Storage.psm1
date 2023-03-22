@@ -261,8 +261,9 @@ function Remove-CorruptedFiles {
 		}
 		$options = [PSCustomObject]@{
 			RemoveWithoutExtension = $RemoveWithoutExtension
-			RemoveExtensions = $RemoveExtensions ?? [string[]]@()
-		}
+#			RemoveExtensions = $RemoveExtensions ?? [string[]]@() # Introduced in PowerShell 7.0
+			RemoveExtensions = If ($RemoveExtensions) { $RemoveExtensions } else { [string[]]@() }
+}
 
 		$null = ProcessFolderRecursive $state $options $directory
 
